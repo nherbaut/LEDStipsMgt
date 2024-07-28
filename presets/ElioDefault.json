@@ -1,0 +1,15 @@
+{
+  "SNOW_INTENSITY": 0.0001,
+  "BACKGROUND_COLOUR": [
+    10,
+    33,
+    0
+  ],
+  "SNOW_COLOUR": [
+    97,
+    0,
+    0
+  ],
+  "FADE_UP_SPEED": 255,
+  "FADE_DOWN_SPEED": 1
+}

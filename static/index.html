@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JSON Generator Form</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+<div class="container mt-5">
+    <h1>JSON Generator Form</h1>
+    <form id="jsonForm">
+        <div class="mb-3">
+            <label for="selector" class="form-label">Profil</label>
+            <select class="form-select" id="selector" onchange="loadConfig()">
+                <option value="elio">Elio</option>
+                <option value="flavio">Flavio</option>
+            </select>
+        </div>
+        <div class="mb-3">
+            <label for="selector" class="form-label">Sauvegarde</label>
+            <select class="form-select" id="selectorPreset" onchange="loadPresetConfig()">
+
+            </select>
+            <button type="button" class="btn btn-danger" onclick="deletePreset()">Supprimer la sauvegarde en cours
+                <button type="button" class="btn btn-primary" onclick="savePreset()">Sauvegarder</button>
+            </button>
+        </div>
+        <div class="mb-3">
+            <label for="snowIntensity" class="form-label">Intensité</label>
+            <input type="range" class="form-range" min="0" max="10" step="1" id="snowIntensity" value="0"
+                   oninput="updateValue('snowIntensity', this.value)">
+            <span id="snowIntensityValue">1</span>
+        </div>
+        <div class="mb-3">
+            <label for="backgroundColour" class="form-label">Couleur de fond</label>
+            <input type="color" class="form-control form-control-color" id="backgroundColour" value="#ff3232"
+                   title="Choose your color" onchange="submitForm()">
+        </div>
+        <div class="mb-3">
+            <label for="snowColour" class="form-label">Couleur de la neige</label>
+            <input type="color" class="form-control form-control-color" id="snowColour" value="#f0ffff"
+                   title="Choose your color" onchange="submitForm()">
+        </div>
+        <div class="mb-3">
+            <label for="fadeUpSpeed" class="form-label">Vitesse d'apparition</label>
+            <input type="range" class="form-range" min="100" max="255" id="fadeUpSpeed" value="100"
+                   oninput="updateValue('fadeUpSpeed', this.value)">
+            <span id="fadeUpSpeedValue">100</span>
+        </div>
+        <div class="mb-3">
+            <label for="fadeDownSpeed" class="form-label">Vitesse de fonte</label>
+            <input type="range" class="form-range" min="1" max="100" id="fadeDownSpeed" value="1"
+                   oninput="updateValue('fadeDownSpeed', this.value)">
+            <span id="fadeDownSpeedValue">1</span>
+        </div>
+        <button type="button" class="btn btn-primary" onclick="generateJSON()">Voir Json</button>
+
+    </form>
+    <h2 class="mt-4">Generated JSON</h2>
+    <pre id="generatedJSON"></pre>
+</div>
+
+<script>
+    let currentProfile = "elio";
+
+    function updateValue(id, value) {
+        document.getElementById(id + 'Value').textContent = value;
+        submitForm();
+    }
+
+    function hexToRgb(hex) {
+        let bigint = parseInt(hex.slice(1), 16);
+        let r = (bigint >> 16) & 255;
+        let g = (bigint >> 8) & 255;
+        let b = bigint & 255;
+        return [r, g, b];
+    }
+
+    function extractFormData() {
+        let snowIntensity = 10 ** (-7 + parseFloat(document.getElementById('snowIntensity').value));
+        let backgroundColour = hexToRgb(document.getElementById('backgroundColour').value);
+        let snowColour = hexToRgb(document.getElementById('snowColour').value);
+        let fadeUpSpeed = parseInt(document.getElementById('fadeUpSpeed').value);
+        let fadeDownSpeed = parseInt(document.getElementById('fadeDownSpeed').value);
+
+        let jsonData = {
+            "SNOW_INTENSITY": snowIntensity,
+            "BACKGROUND_COLOUR": backgroundColour,
+            "SNOW_COLOUR": snowColour,
+            "FADE_UP_SPEED": fadeUpSpeed,
+            "FADE_DOWN_SPEED": fadeDownSpeed
+        };
+        return jsonData;
+    }
+
+    function generateJSON() {
+        let jsonData = extractFormData();
+
+        document.getElementById('generatedJSON').textContent = JSON.stringify(jsonData, null, 2);
+        submitForm(jsonD192ata);
+    }
+
+    function deletePreset() {
+        var presetToDelete = document.getElementById('selectorPreset').value;
+        fetch(`/presets/` + presetToDelete + ".json", {
+            method: 'DELETE',
+
+        }).then(response => response.json())
+            .then(data => alert("Sauvegarde supprimée")
+            ).catch((error) => console.error('Error:', error));
+
+
+        loadPresets();
+    }
+
+    function loadPresets() {
+        document.getElementById('selectorPreset').innerHTML = "";
+        fetch(`/presets`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+
+        }).then(response => response.json())
+            .then(data => {
+                for (let preset of data) {
+                    document.getElementById('selectorPreset').innerHTML += '<option value="' + preset + '">' + preset + '</option>';
+                }
+            })
+            .catch((error) => console.error('Error:', error));
+    }
+
+    loadPresets();
+
+    function savePreset() {
+        var jsonData = extractFormData();
+        var presetName = window.prompt("Nom de la sauvegarde? (sans espace)");
+
+        fetch(`/presets/${presetName}.json`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(jsonData)
+        }).then(response => response.json())
+            .then(data => {
+                loadPresets();
+                window.alert("Sauvegardé");
+            })
+            .catch((error) => console.error('Error:', error));
+
+    }
+
+    function submitForm(jsonData) {
+        if (!jsonData) {
+            jsonData = extractFormData();
+        }
+
+        fetch(`/${currentProfile}.json`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(jsonData)
+        })
+            .then(response => response.json())
+            .then(data => console.log('Success:', data))
+            .catch((error) => console.error('Error:', error));
+    }
+
+    function loadProfile() {
+        return loadConfig(true);
+    }
+
+    function loadPresetConfig() {
+        return loadConfig(false);
+    }
+
+    function loadConfig(profile = false) {
+        currentProfile = document.getElementById('selector').value;
+        let currentPreset = document.getElementById('selectorPreset').value;
+        let url = "";
+        if (profile) {
+            url = `/${currentProfile}.json`
+        } else {
+            url = `/presets/${currentPreset}.json`
+        }
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('snowIntensity').value = Math.log10(data.SNOW_INTENSITY) + 7;
+                updateValue('snowIntensity', document.getElementById('snowIntensity').value);
+                document.getElementById('backgroundColour').value = rgbToHex(data.BACKGROUND_COLOUR);
+                document.getElementById('snowColour').value = rgbToHex(data.SNOW_COLOUR);
+                document.getElementById('fadeUpSpeed').value = data.FADE_UP_SPEED;
+                updateValue('fadeUpSpeed', data.FADE_UP_SPEED);
+                document.getElementById('fadeDownSpeed').value = data.FADE_DOWN_SPEED;
+                updateValue('fadeDownSpeed', data.FADE_DOWN_SPEED);
+            })
+            .catch((error) => console.error('Error:', error));
+    }
+
+    function rgbToHex(rgb) {
+        let hex = "#";
+        rgb.forEach(value => {
+            let h = value.toString(16);
+            hex += (h.length === 1 ? "0" : "") + h;
+        });
+        return hex;
+    }
+
+    window.onload = loadProfile;
+</script>
+
+</body>
+</html>
+
