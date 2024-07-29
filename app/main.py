@@ -7,7 +7,7 @@ from fastapi.staticfiles import StaticFiles
 import json
 
 app = FastAPI()
-
+app.mount("/assets", StaticFiles(directory="static/assets"), name="static")
 class FormData(BaseModel):
     SNOW_INTENSITY: float
     BACKGROUND_COLOUR: list[int]
